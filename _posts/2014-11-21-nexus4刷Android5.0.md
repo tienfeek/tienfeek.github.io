@@ -1,16 +1,16 @@
 
-Nexus 4 刷Android5.0
-====================
 
 ##准备工作 
 
 1. 解锁你的 Nexus 设备 
 解锁教程：http://www.inexus.co/thread-3741-1-1.html 
+
 温馨提示 1：解锁过程中会清空设备，切记要备份数据。 
 温馨提示 2：如果你并不知道自己的设备有没有解锁，可以重启手机，观察开机动画前屏幕下方出现的「白色小锁」是否闭合，若然你的设备和下图一样呈「开锁」状，证明你的爱机早已解锁。 
 ![Alt text](http://cdn.sspai.com/attachment/thumbnail/2014/11/04/79140e866356e47e33a983393edd5c79_mw_800_wm_1_wmp_3.jpg)
 
 2. 在 Windows 电脑上配置好 adb fastboot 环境： 
+
 下载并解压 adb 工具包（下载地址） 
 将名称中含有 adb 和 fastboot.exe 的文件复制到 c:/windows/system32 目录下 
 再将名称中含有 adb 的所有文件复制到 c:/windows/system 文件夹里
