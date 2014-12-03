@@ -1,0 +1,189 @@
+由于项目需要，最近研究了下ProtocolBuffer。现把Java版使用记录下来，以便后面查看。建议阅读官方文档，在此也给个[地址]( http://code.google.com/intl/zh-CN/apis/protocolbuffers/docs/overview.html) ，好了，进入主题吧！
+***
+protobuf介绍
+***
+protobuf是google提供的一个开源序列化框架。主要 应用于通信协议，数据存储中的结构化数据的序列化。它类 似于XML，JSON这样的数据表示语言，其最大的特点是基于二进制，因此比传统的XML表示高效短小得多。虽然是二进制数据格式，但并没有因此变得复 杂，开发人员通过按照一定的语法定义结构化的消息格式，然后送给命令行工具，工具将自动生成相关的类，可以支持java、c++、python等语言环 境。通过将这些类包含在项目中，可以很轻松的调用相关方法来完成业务消息的序列化与反序列化工作。
+***
+protobuf的优势
+***
+1. 跨语言
+2. 跨平台
+3. 高效
+***
+protobuf入门（eclipse下java环境的搭建）
+***
+ 更多案例请查阅源代码包 [protobuf-2.3.0.zip](https://code.google.com/p/protobuf/downloads/detail?name=protobuf-2.3.0.zip&can=2&q=)   里面有关于各种支持语言（java，C++，python等 ）的案例。
+
+1. 下载jar包 protobuf-java-2.3.0.jar
+2. 下载编译器protoc.exe
+3. 新建java工程test_protobuf
+4. 导入protobuf-java-2.3.0.jar包
+5. 导入编译器protoc.exe到项目下
+6. 在项目下建存放文件.proto的文件夹proto
+7. 编写message并放在proto文件夹下，有关编写规范和说明请参考官网文档 ，在这里我引用官网的例子，创建addressbook.proto代码如下：
+
+```java
+package tutorial;
+option java_package = "com.example.tutorial";
+option java_outer_classname = "AddressBookProtos";
+message Person {
+  required string name = 1;
+  required int32 id = 2;        // Unique ID number for this person.
+  optional string email = 3;
+  enum PhoneType {
+    MOBILE = 0;
+    HOME = 1;
+    WORK = 2;
+  }
+  message PhoneNumber {
+    required string number = 1;
+    optional PhoneType type = 2 [default = HOME];
+  }
+  repeated PhoneNumber phone = 4;
+}
+// Our address book file is just one of these.
+message AddressBook {
+  repeated Person person = 1;
+}
+```
+
+```java
+package tutorial;
+option java_package = "com.example.tutorial";
+option java_outer_classname = "AddressBookProtos";
+message Person {
+  required string name = 1;
+  required int32 id = 2;        // Unique ID number for this person.
+  optional string email = 3;
+  enum PhoneType {
+    MOBILE = 0;
+    HOME = 1;
+    WORK = 2;
+  }
+  message PhoneNumber {
+    required string number = 1;
+    optional PhoneType type = 2 [default = HOME];
+  }
+  repeated PhoneNumber phone = 4;
+}
+// Our address book file is just one of these.
+message AddressBook {
+  repeated Person person = 1;
+}
+```
+
+8. 编译addressbook.proto成指定的java类
+ 命令行下进入编译器所在目录，执行如下命令
+     protoc -I=proto/ --java_out=src proto/addressbook.proto
+     其中，src为生成的java类的目标位置，这里我们选择项目的默认包，proto/addressbook.proto表示我们的proto文件，运行 后即生成java类，生成的java类被放在了package com.example.tutorial中。刚才我们指定的目标位置是src，为什么现在却被放在了这个包中呢？这和我们的 addressbook.proto文件中的option java_package = "com.example.tutorial";有关。欲了解更多，参考上节提到的官方文档。
+9. 现在有了生成的AddressBookProtos.java类，我们可以向文件里写入消息了，首先编写AddPerson.java,代码如下：
+
+
+```java
+public class AddPerson{    
+	// This function fills in a Person message based on user input.    
+	static Person PromptForAddress(BufferedReader stdin,PrintStream stdout)throws IOException{      
+		Person.Builder person = Person.newBuilder();
+		stdout.print("Enter person ID: ");      
+		person.setId(Integer.valueOf(stdin.readLine()));        
+		stdout.print("Enter name: ");      
+		person.setName(stdin.readLine());        
+		stdout.print("Enter email address (blank for none): ");      
+		String email = stdin.readLine();      
+		if (email.length() > 0){        
+			person.setEmail(email);     
+		}       
+		while (true){        
+			stdout.print("Enter a phone number (or leave blank to finish): ");
+			String number = stdin.readLine();        
+			if (number.length() == 0){          
+				break;        
+			}          
+			Person.PhoneNumber.Builder phoneNumber = Person.PhoneNumber.newBuilder().setNumber(number);
+			stdout.print("Is this a mobile, home, or work phone? ");        
+			String type = stdin.readLine();        
+			if (type.equals("mobile")){          
+				phoneNumber.setType(Person.PhoneType.MOBILE);    
+			} else if (type.equals("home")) {          
+				phoneNumber.setType(Person.PhoneType.HOME);        
+			} else if (type.equals("work")) {         
+				phoneNumber.setType(Person.PhoneType.WORK);        
+			} else {          
+				stdout.println("Unknown phone type.  Using default.");        
+			}          
+			person.addPhone(phoneNumber);      
+		}        
+		return person.build();    
+	}      
+	// Main function: Reads the entire address book from a file,  adds one person based on user input, 
+	//then writes it back out to the same file.    
+	public static void main(String[] args) throws Exception{      
+		if (args.length != 1) {        
+			System.err.println("Usage:  AddPerson ADDRESS_BOOK_FILE");        
+			System.exit(-1);      
+		}        
+		AddressBook.Builder addressBook = AddressBook.newBuilder();        
+		// Read the existing address book.      
+		try {        
+			addressBook.mergeFrom(new FileInputStream(args[0]));      
+		} catch (FileNotFoundException e) {        
+			System.out.println(args[0] + ": File not found.  Creating a new file.");      
+		}        
+		// Add an address.      
+		addressBook.addPerson(        
+			PromptForAddress(new BufferedReader(new InputStreamReader(System.in)), System.out));        
+		// Write the new address book back to disk.      
+		FileOutputStream output = new FileOutputStream(args[0]);      
+		addressBook.build().writeTo(output);     
+		output.close();    
+	} 
+}
+
+```
+
+首先配置参数，也就是消息被序列化后存储的文件名，这里，我们就把参数设置成AddressBook.代码中提到，运行时如果文件不存在，将会创建文件并写入；如果存在，就写入。运行程序，按照提示输入消息。然后查看我们的项目路径下，将会产生AddressBook文件
+
+10. 上一步是将消息序列化到文件中，这一步将文件中的消息反序列化，类似地，我们创建一个类：ListPeople.java 代码如下： 
+
+```java
+public class ListPeople {    
+		// Iterates though all people in the AddressBook and prints info about them.    
+		static void Print(AddressBook addressBook) {      
+			for (Person person: addressBook.getPersonList()) {        
+				System.out.println("Person ID: " + person.getId());        
+				System.out.println("  Name: " + person.getName());        
+				if (person.hasEmail()) {          
+					System.out.println("  E-mail address: " + person.getEmail());        
+				}          
+				for (Person.PhoneNumber phoneNumber : person.getPhoneList()) {          
+					switch (phoneNumber.getType()) {            
+						case MOBILE:              
+							System.out.print("  Mobile phone #: ");              
+							break;            
+						case HOME:              
+							System.out.print("  Home phone #: ");              
+							break;            
+						case WORK:              
+							System.out.print("  Work phone #: ");              
+						break;          
+					}          
+					System.out.println(phoneNumber.getNumber());        
+				}      
+			}    
+		}      
+		// Main function:  Reads the entire address book from a file and prints all  the information inside.    
+		/**
+		 * @param args
+		 * @throws Exception
+		 */
+		public static void main(String[] args) throws Exception {      
+			if (args.length != 1) {        
+				System.err.println("Usage:  ListPeople ADDRESS_BOOK_FILE");        
+				System.exit(-1);      
+			}        
+			// Read the existing address book.      
+			AddressBook addressBook = AddressBook.parseFrom(new FileInputStream(args[0]));
+			Print(addressBook);    
+		}  
+}
+```
